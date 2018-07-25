@@ -22,6 +22,7 @@ int main(int argc, char **argv)
     ignore argc;
     ignore argv;
 
+    /* Window setup */
     glfwInit();
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -44,13 +45,18 @@ int main(int argc, char **argv)
         fputs("Failed to load gl funcs", stderr);
         return -1;
     }
+
+    /* Enable multisampling */
     glEnable(GL_MULTISAMPLE);
+
+    /* Set up our viewport */
     s32 width, height;
     glfwGetWindowSize(win, &width, &height);
 
     FramebufferResize(win, width, height);
     glfwSetFramebufferSizeCallback(win, FramebufferResize);
 
+    /* Prep vertex array */
     float vertices[] = {.5, -.5, 0,
                         0, .5, 0,
                         -.5, -.5, 0};
@@ -60,9 +66,11 @@ int main(int argc, char **argv)
 
     glBindVertexArray(VAO);
 
+    /* Set up vertex buffer */
     GLuint VBO;
     glGenBuffers(1, &VBO);
 
+    /* Buffer the data */
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -71,6 +79,7 @@ int main(int argc, char **argv)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    /* Set up our shaders */
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 
     ssize_t vertShaderSourceSize;
@@ -118,6 +127,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
         /* Input handling */
