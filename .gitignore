@@ -1,0 +1,8 @@
+/GPATH
+/GRTAGS
+/GTAGS
+/gl-basic-rendering
+/gl-basic-rendering-ebo
+*.d
+*.o
+*.a
