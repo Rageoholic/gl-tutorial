@@ -3,14 +3,16 @@
 
 #include "rutils/def.h"
 #include "rutils/file.h"
+#include "rutils/math.h"
 #include "stb_image.h"
 
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 
 #define VERTEX_FILE "texture-render.vert"
-#define FRAG_FILE "render-with-texture.frag"
+#define FRAG_FILE "render-with-2-textures.frag"
 #define TEXTURE_PATH "data/container.jpg"
+#define TEXTURE_PATH_2 "data/awesomeface.png"
 
 static void FramebufferResize(GLFWwindow *win, int width, int height)
 {
@@ -30,9 +32,10 @@ int main(int argc, char **argv)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    stbi_set_flip_vertically_on_load(true);
 
     GLFWwindow *win = glfwCreateWindow(1280, 720, "LearnOpenGL", NULL, NULL);
-    glfwSetWindowAspectRatio(win, 16, 9);
+    glfwSetWindowAspectRatio(win, 800, 600);
     if (win == NULL)
     {
         fputs("Failed to make window", stderr);
@@ -99,6 +102,7 @@ int main(int argc, char **argv)
     glEnableVertexAttribArray(2);
 
     /* Set up our shaders */
+    /* TODO: better shader abstraction */
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
     {
 
@@ -153,14 +157,17 @@ int main(int argc, char **argv)
     }
     /* Load our texture */
 
-    GLuint texture;
-    glGenTextures(1, &texture);
+    GLuint texture[2];
+    glGenTextures(2, texture);
     {
         int width, height, nrChannels;
         byte *textureData = stbi_load(TEXTURE_PATH, &width, &height, &nrChannels, 0);
         if (textureData)
         {
-            glBindTexture(GL_TEXTURE_2D, texture);
+            glBindTexture(GL_TEXTURE_2D, texture[0]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
             glGenerateMipmap(GL_TEXTURE_2D);
             stbi_image_free(textureData);
@@ -170,6 +177,27 @@ int main(int argc, char **argv)
             fputs("TEXTURE MISSING", stderr);
         }
     }
+    {
+        int width, height, nrChannels;
+        byte *textureData = stbi_load(TEXTURE_PATH_2, &width, &height, &nrChannels, 0);
+        if (textureData)
+        {
+            glBindTexture(GL_TEXTURE_2D, texture[1]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            stbi_image_free(textureData);
+        }
+        else
+        {
+            fputs("TEXTURE MISSING", stderr);
+        }
+    }
+
+    glUseProgram(shaderProg);
+    glUniform1i(glGetUniformLocation(shaderProg, "texture1"), 0);
+    glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
@@ -191,6 +219,12 @@ int main(int argc, char **argv)
         RGLClearScreen((Color){.1, .5, .5});
 
         glUseProgram(shaderProg);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture[1]);
+
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
