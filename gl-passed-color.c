@@ -5,9 +5,10 @@
 #include "rutils/file.h"
 
 #include <GLFW/glfw3.h>
-#include <stdio.h>
 
-#define VERTEX_FILE "multicolor-render.vert"
+#include <math.h>
+#include <stdio.h>
+#define VERTEX_FILE "passed-color.vert"
 #define FRAG_FILE "render-with-given-color.frag"
 
 static void FramebufferResize(GLFWwindow *win, int width, int height)
@@ -57,9 +58,9 @@ int main(int argc, char **argv)
     glfwSetFramebufferSizeCallback(win, FramebufferResize);
 
     /* Prep vertex array */
-    float vertices[] = {.5, -.5, 0,
-                        0, .5, 0,
-                        -.5, -.5, 0};
+    float vertices[] = {.5, -.5, 0, 1, 0, 0,
+                        0, .5, 0, 0, 1, 0,
+                        -.5, -.5, 0, 0, 0, 1};
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -76,10 +77,13 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
     /* Set up our shaders */
+
     GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 
     ssize_t vertShaderSourceSize;
@@ -126,9 +130,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "LINK ERROR IN SHADER PROG %s\n", infoLog);
         return -1;
     }
+    UnmapMappedBuffer(vertShaderSource, vertShaderSourceSize);
+    UnmapMappedBuffer(fragShaderSource, fragShaderSourceSize);
 
-    /* Main loop
-     */
+    /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
         /* Input handling */

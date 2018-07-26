@@ -1,4 +1,5 @@
-COMPONENTS = gl-basic-rendering-ebo gl-basic-rendering gl-vertex-shader-color $(SHADER_TESTS)
+COMPONENTS = gl-basic-rendering-ebo gl-basic-rendering gl-vertex-shader-color	\
+gl-uniform-color gl-passed-color $(SHADER_TESTS)
 
 WARNINGS = -Wall -Wextra -Werror -Wno-error=unused-variable	\
 -Wno-error=unused-parameter -Wno-missing-field-initializers -Wno-unused-function
@@ -8,7 +9,7 @@ DEPS = $(shell find . -name "*.d")
 _SHADERS = $(shell find . -name "*.vert")  $(shell find . -name "*.frag")
 SHADER_TESTS = $(patsubst %, %.test, $(_SHADERS))
 
-LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl
+LIBS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl -lm
 LDFLAGS = $(LIBS)
 
 ifndef mode
@@ -39,13 +40,14 @@ RUTILS_DIR = rutils/
 gl-basic-rendering-ebo: rgl.o gl-basic-rendering-ebo.o  rutils.a glad.o
 gl-vertex-shader-color: rgl.o gl-vertex-shader-color.o  rutils.a glad.o
 gl-basic-rendering: rgl.o gl-basic-rendering.o  rutils.a glad.o
+gl-uniform-color: rgl.o gl-uniform-color.o  rutils.a glad.o
+gl-passed-color: rgl.o gl-passed-color.o  rutils.a glad.o
 
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CCFLAGS)
 
 
 %.o: %.c
-	sparse $< -Wsparse-error -Wsparse-all -Wno-declaration-after-statement -Wno-decl
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 %.vert.test: %.vert

@@ -8,3 +8,5 @@
 *.a
 *.test
 /gl-vertex-shader-color
+/gl-passed-color
+/gl-uniform-color

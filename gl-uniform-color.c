@@ -5,9 +5,10 @@
 #include "rutils/file.h"
 
 #include <GLFW/glfw3.h>
-#include <stdio.h>
 
-#define VERTEX_FILE "multicolor-render.vert"
+#include <math.h>
+#include <stdio.h>
+#define VERTEX_FILE "uniform-color.vert"
 #define FRAG_FILE "render-with-given-color.frag"
 
 static void FramebufferResize(GLFWwindow *win, int width, int height)
@@ -126,6 +127,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "LINK ERROR IN SHADER PROG %s\n", infoLog);
         return -1;
     }
+    GLint uniformColorLoc = glGetUniformLocation(shaderProg, "uniformColor");
 
     /* Main loop
      */
@@ -151,6 +153,10 @@ int main(int argc, char **argv)
         glUseProgram(shaderProg);
         glBindVertexArray(VAO);
 
+        float t = glfwGetTime();
+        Color uniformColor = {0, (sin(t) + 1) / 2, 0, 0};
+        glUniform4f(uniformColorLoc, uniformColor.r, uniformColor.g,
+                    uniformColor.b, uniformColor.a);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         /* Final book keeping */
