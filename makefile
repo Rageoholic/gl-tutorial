@@ -1,5 +1,5 @@
 COMPONENTS = gl-basic-rendering-ebo gl-basic-rendering gl-vertex-shader-color	\
-gl-uniform-color gl-passed-color gl-texture-basics $(SHADER_TESTS)
+gl-uniform-color gl-passed-color gl-texture-basics  gl-transform-basics $(SHADER_TESTS)
 
 WARNINGS = -Wall -Wextra -Werror -Wno-error=unused-variable	\
 -Wno-error=unused-parameter -Wno-missing-field-initializers -Wno-unused-function
@@ -43,6 +43,7 @@ gl-basic-rendering: rgl.o gl-basic-rendering.o  rutils.a glad.o
 gl-uniform-color: rgl.o gl-uniform-color.o  rutils.a glad.o
 gl-passed-color: rgl.o gl-passed-color.o  rutils.a glad.o
 gl-texture-basics: rgl.o gl-texture-basics.o stb_image.o rutils.a glad.o
+gl-transform-basics: rgl.o gl-transform-basics.o stb_image.o rutils.a glad.o rutils/math.o
 
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CCFLAGS)
