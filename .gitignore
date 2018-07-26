@@ -10,3 +10,5 @@
 /gl-vertex-shader-color
 /gl-passed-color
 /gl-uniform-color
+.#*
+/gl-texture-basics
