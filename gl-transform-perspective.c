@@ -6,6 +6,8 @@
 #include "rutils/math.h"
 #include "stb_image.h"
 
+#define countof(x) (sizeof(x) / sizeof(x[0]))
+
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <stdio.h>
@@ -67,15 +69,59 @@ int main(int argc, char **argv)
     /* Prep vertex array */
 
     float vertices[] = {
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
 
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
-    };
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
 
-    u32 indices[] = {0, 1, 3,
-                     1, 2, 3};
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
+
+    Vec3f cubePositions[] = {
+        {0.0f, 0.0f, 0.0f},
+        {2.0f, 5.0f, -15.0f},
+        {-1.5f, -2.2f, -2.5f},
+        {-3.8f, -2.0f, -12.3f},
+        {2.4f, -0.4f, -3.5f},
+        {-1.7f, 3.0f, -7.5f},
+        {1.3f, -2.0f, -2.5f},
+        {1.5f, 2.0f, -2.5f},
+        {1.5f, 0.2f, -1.5f},
+        {-1.3f, 1.0f, -1.5f}};
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -83,7 +129,7 @@ int main(int argc, char **argv)
     glBindVertexArray(VAO);
 
     /* Set up vertex buffer */
-    GLuint VBO, EBO;
+    GLuint VBO;
     glGenBuffers(1, &VBO);
 
     /* Buffer the data */
@@ -92,17 +138,10 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     /* Set up our shaders */
     /* TODO: better shader abstraction */
@@ -216,10 +255,13 @@ int main(int argc, char **argv)
     glUniformMatrix4fv(projLoc, 1,
                        GL_FALSE, (float *)&proj);
     glClearColor(.3, .4, .5, 1);
+    clock_t totalTime = 0;
+    size_t numSamples = 0;
 
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
+        clock_t begin = clock();
         /* Input handling */
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
@@ -235,29 +277,43 @@ int main(int argc, char **argv)
         }
 
         /* Drawing */
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        Mat4f model = IdMat4f;
-        model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(0, 1, 0));
-
-        glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
-                           GL_FALSE, (float *)&model);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
-
         glBindVertexArray(VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+        for (size_t i = 0; i < countof(cubePositions); i++)
+        {
+            Mat4f model = TranslateMat4f(&IdMat4f, cubePositions[i]);
+
+            model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(.5, 1, 0));
+            float angle = 13 * i;
+
+            model = RotateMat4f(&model, DegToRad(angle), vec3f(1, .3, .5));
+
+            glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
+                               GL_FALSE, (float *)&model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        clock_t end = clock();
+
+        printf("Took %f milliseconds\n", (double)(end - begin) / CLOCKS_PER_SEC * 1000);
+
+        totalTime += end - begin;
+        numSamples++;
 
         /* Final book keeping */
         glfwSwapBuffers(win);
         glfwPollEvents();
     }
+    printf("Took %f milliseconds  on average\n",
+           (double)(totalTime / numSamples) / CLOCKS_PER_SEC * 1000);
     glfwTerminate();
     return 0;
 }
