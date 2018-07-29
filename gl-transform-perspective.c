@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     stbi_set_flip_vertically_on_load(true);
 
     GLFWwindow *win = glfwCreateWindow(1280, 720, "LearnOpenGL", NULL, NULL);
-    glfwSetWindowAspectRatio(win, 800, 600);
+    glfwSetWindowAspectRatio(win, 1280, 720);
     if (win == NULL)
     {
         fputs("Failed to make window", stderr);
@@ -171,8 +171,8 @@ int main(int argc, char **argv)
 
         glShaderSource(fragShader, 1, (const char **)&fragShaderSource, NULL);
         glCompileShader(fragShader);
-        int success;
 
+        int success;
         glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
         if (!success)
         {
@@ -242,13 +242,6 @@ int main(int argc, char **argv)
     glUniform1i(glGetUniformLocation(shaderProg, "texture1"), 0);
     glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
 
-    Mat4f view = IdMat4f;
-
-    view = TranslateMat4f(&view, vec3f(0, 0, -3));
-    GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
-    glUniformMatrix4fv(viewLoc, 1,
-                       GL_FALSE, (float *)&view);
-
     Mat4f proj = CreatePerspectiveMat4f(DegToRad(70), 800. / 600., .1, 1000);
 
     GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
@@ -286,6 +279,15 @@ int main(int argc, char **argv)
         glBindTexture(GL_TEXTURE_2D, texture[1]);
         glBindVertexArray(VAO);
 
+        float radius = 10.0f;
+        float camX = sin(glfwGetTime()) * radius;
+        float camZ = cos(glfwGetTime()) * radius;
+        Mat4f view = CalcLookAtMat4f(vec3f(camX, 0.0, camZ), vec3f(0.0, 0.0, 0.0), vec3f(0.0, 1.0, 0.0));
+
+        GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
+        glUniformMatrix4fv(viewLoc, 1,
+                           GL_FALSE, (float *)&view);
+
         for (size_t i = 0; i < countof(cubePositions); i++)
         {
             Mat4f model = TranslateMat4f(&IdMat4f, cubePositions[i]);
@@ -293,7 +295,9 @@ int main(int argc, char **argv)
             model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(.5, 1, 0));
             float angle = 13 * i;
 
-            model = RotateMat4f(&model, DegToRad(angle), vec3f(1, .3, .5));
+            model = RotateMat4f(&model,
+                                DegToRad(angle) * (float)glfwGetTime() / 3,
+                                vec3f(1, .3, .5));
 
             glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
                                GL_FALSE, (float *)&model);
