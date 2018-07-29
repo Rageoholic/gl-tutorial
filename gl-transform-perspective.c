@@ -18,12 +18,74 @@
 #define FRAG_FILE "render-with-2-textures.frag"
 #define TEXTURE_PATH "data/container.jpg"
 #define TEXTURE_PATH_2 "data/awesomeface.png"
+#define MOVE_SPEED 4
 
+Vec3f cameraFront = (Vec3f){0.0f, 0.0f, -1.0f};
 static void FramebufferResize(GLFWwindow *win, int width, int height)
 {
     ignore win;
     glViewport(0, 0, width, height);
 }
+
+float lastX = 640;
+float lastY = 360;
+float yaw = -90;
+float pitch = 0;
+bool firstMouse = true;
+float fov = 70;
+
+void ScrollCallback(GLFWwindow *win, double xoffset, double yoffset)
+{
+    ignore win;
+    ignore xoffset;
+    if (fov >= 1 && fov <= 70)
+    {
+        fov -= yoffset * 2;
+    }
+    if (fov <= 1)
+    {
+        fov = 1;
+    }
+    if (fov >= 70)
+    {
+        fov = 70;
+    }
+}
+
+void MouseCallback(GLFWwindow *window, double xpos, double ypos)
+{
+    ignore window;
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.05;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    Vec3f front;
+    front.x = cos(DegToRad(yaw)) * cos(DegToRad(pitch));
+    front.y = sin(DegToRad(pitch));
+    front.z = sin(DegToRad(yaw)) * cos(DegToRad(pitch));
+    cameraFront = NormalizeVec3f(front);
+}
+
 // TODO: Look into dynamic code loading for the rendering functions because
 // *not* having that is a pain
 int main(int argc, char **argv)
@@ -33,6 +95,7 @@ int main(int argc, char **argv)
 
     /* Window setup */
     glfwInit();
+
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -40,6 +103,7 @@ int main(int argc, char **argv)
     stbi_set_flip_vertically_on_load(true);
 
     GLFWwindow *win = glfwCreateWindow(1280, 720, "LearnOpenGL", NULL, NULL);
+    glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowAspectRatio(win, 1280, 720);
     if (win == NULL)
     {
@@ -49,6 +113,8 @@ int main(int argc, char **argv)
     }
 
     glfwMakeContextCurrent(win);
+    glfwSetScrollCallback(win, ScrollCallback);
+    glfwSetCursorPosCallback(win, MouseCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -242,17 +308,12 @@ int main(int argc, char **argv)
     glUniform1i(glGetUniformLocation(shaderProg, "texture1"), 0);
     glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
 
-    Mat4f proj = CreatePerspectiveMat4f(DegToRad(70), 800. / 600., .1, 1000);
-
-    GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
-    glUniformMatrix4fv(projLoc, 1,
-                       GL_FALSE, (float *)&proj);
     glClearColor(.3, .4, .5, 1);
     clock_t totalTime = 0;
     size_t numSamples = 0;
 
     Vec3f cameraPos = vec3f(0.0f, 0.0f, 3.0f);
-    Vec3f cameraFront = vec3f(0.0f, 0.0f, -1.0f);
+
     Vec3f cameraUp = vec3f(0.0f, 1.0f, 0.0f);
 
     float deltaTime = 0.0f; // Time between current frame and last frame
@@ -261,12 +322,13 @@ int main(int argc, char **argv)
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
+
         clock_t begin = clock();
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        float moveSpeed = 2.5 * deltaTime;
+        float moveSpeed = MOVE_SPEED * deltaTime;
 
         /* Input handling */
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -323,6 +385,12 @@ int main(int argc, char **argv)
         GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
         glUniformMatrix4fv(viewLoc, 1,
                            GL_FALSE, (float *)&view);
+
+        Mat4f proj = CreatePerspectiveMat4f(DegToRad(fov), 800. / 600., .1, 1000);
+
+        GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
+        glUniformMatrix4fv(projLoc, 1,
+                           GL_FALSE, (float *)&proj);
 
         for (size_t i = 0; i < countof(cubePositions); i++)
         {
