@@ -201,9 +201,9 @@ int main(int argc, char **argv)
     glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
 
     /* Calculate our transform */
-    Mat4f rotMat = RotateMat4f(IdMat4f, DegToRad(-90), vec3f(0, 0, 1));
+    Mat4f rotMat = RotateMat4f(&IdMat4f, DegToRad(-90), vec3f(0, 0, 1));
 
-    Mat4f rotAndScaleMat = ScaleMat4f(rotMat, vec3f(.5, .5, .5));
+    Mat4f rotAndScaleMat = ScaleMat4f(&rotMat, vec3f(.5, .5, .5));
 
     glUniformMatrix4fv(glGetUniformLocation(shaderProg, "transform"), 1,
                        GL_FALSE, (float *)&rotAndScaleMat);
@@ -235,12 +235,12 @@ int main(int argc, char **argv)
         glBindTexture(GL_TEXTURE_2D, texture[1]);
 
         Mat4f transMat = IdMat4f;
-        transMat = TranslateMat4f(IdMat4f,
+        transMat = TranslateMat4f(&IdMat4f,
                                   vec3f(sin(glfwGetTime() * 3 / 10),
                                         cos(glfwGetTime() * 5 / 10),
                                         0));
-        transMat = RotateMat4f(transMat, glfwGetTime() * 2, vec3f(0, 0, 1));
-        transMat = ScaleMat4f(transMat, vec3f(.5, .5, .5));
+        transMat = RotateMat4f(&transMat, glfwGetTime() * 2, vec3f(0, 0, 1));
+        transMat = ScaleMat4f(&transMat, vec3f(.5, .5, .5));
 
         glUniformMatrix4fv(glGetUniformLocation(shaderProg, "transform"), 1,
                            GL_FALSE, (float *)&transMat);

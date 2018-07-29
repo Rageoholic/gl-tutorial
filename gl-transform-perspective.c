@@ -9,6 +9,8 @@
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 #define VERTEX_FILE "transform-projection.vert"
 #define FRAG_FILE "render-with-2-textures.frag"
@@ -203,7 +205,7 @@ int main(int argc, char **argv)
 
     Mat4f view = IdMat4f;
 
-    view = TranslateMat4f(view, vec3f(0, 0, -3));
+    view = TranslateMat4f(&view, vec3f(0, 0, -3));
     GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
     glUniformMatrix4fv(viewLoc, 1,
                        GL_FALSE, (float *)&view);
@@ -212,7 +214,8 @@ int main(int argc, char **argv)
 
     GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
     glUniformMatrix4fv(projLoc, 1,
-                       GL_FALSE, (float *)&IdMat4f);
+                       GL_FALSE, (float *)&proj);
+    glClearColor(.3, .4, .5, 1);
 
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
@@ -232,14 +235,11 @@ int main(int argc, char **argv)
         }
 
         /* Drawing */
-        glClearColor(.3, .4, .5, 1);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProg);
         Mat4f model = IdMat4f;
-        model = RotateMat4f(model, (float)glfwGetTime(), vec3f(0, 1, 0));
-
-        model = MultiplyMatrices(proj, model);
+        model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(0, 1, 0));
 
         glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
                            GL_FALSE, (float *)&model);
