@@ -201,20 +201,18 @@ int main(int argc, char **argv)
     glUniform1i(glGetUniformLocation(shaderProg, "texture1"), 0);
     glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
 
-    Mat4f view = TranslateMat4f(IdMat4f, vec3f(0, 0, -1));
+    Mat4f view = IdMat4f;
 
-    glUniformMatrix4fv(glGetUniformLocation(shaderProg, "view"), 1,
+    view = TranslateMat4f(view, vec3f(0, 0, -3));
+    GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
+    glUniformMatrix4fv(viewLoc, 1,
                        GL_FALSE, (float *)&view);
-    Mat4f proj = CreatePerspectiveMat4f(DegToRad(45), (float)800 / (float)600, .1, 100);
 
-    glUniformMatrix4fv(glGetUniformLocation(shaderProg, "proj"), 1,
-                       GL_FALSE, (float *)&proj);
+    Mat4f proj = CreatePerspectiveMat4f(DegToRad(70), 800. / 600., .1, 1000);
 
-    Mat4f model = IdMat4f;
-    model = RotateMat4f(model, 55, vec3f(1, 0, 0));
-
-    glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
-                       GL_FALSE, (float *)&model);
+    GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
+    glUniformMatrix4fv(projLoc, 1,
+                       GL_FALSE, (float *)&IdMat4f);
 
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
@@ -238,6 +236,14 @@ int main(int argc, char **argv)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(shaderProg);
+        Mat4f model = IdMat4f;
+        model = RotateMat4f(model, (float)glfwGetTime(), vec3f(0, 1, 0));
+
+        model = MultiplyMatrices(proj, model);
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
+                           GL_FALSE, (float *)&model);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
 

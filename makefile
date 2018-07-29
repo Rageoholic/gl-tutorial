@@ -62,8 +62,6 @@ gl-transform-perspective: rgl.o gl-transform-perspective.o stb_image.o rutils.a 
 	glslangValidator $<
 	date > $@
 
-%.o: %.asm
-	$(AS) -felf32 $< -o $@
 
 clean:
 	-$(RM)  `find . -name "*.o"` ` find . -name "*.d"` $(COMPONENTS) rageOS.iso
