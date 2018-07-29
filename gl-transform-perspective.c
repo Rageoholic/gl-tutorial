@@ -251,22 +251,61 @@ int main(int argc, char **argv)
     clock_t totalTime = 0;
     size_t numSamples = 0;
 
+    Vec3f cameraPos = vec3f(0.0f, 0.0f, 3.0f);
+    Vec3f cameraFront = vec3f(0.0f, 0.0f, -1.0f);
+    Vec3f cameraUp = vec3f(0.0f, 1.0f, 0.0f);
+
+    float deltaTime = 0.0f; // Time between current frame and last frame
+    float lastFrame = 0.0f; // Time of last frame
+
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
         clock_t begin = clock();
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        float moveSpeed = 2.5 * deltaTime;
+
         /* Input handling */
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(win, true);
         }
-        if (glfwGetKey(win, GLFW_KEY_W))
+        if (glfwGetKey(win, GLFW_KEY_F1) == GLFW_PRESS)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
-        if (glfwGetKey(win, GLFW_KEY_F))
+        if (glfwGetKey(win, GLFW_KEY_F2) == GLFW_PRESS)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
+        {
+            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
+        {
+            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                    CrossProductVec3f(cameraFront,
+                                                                                      cameraUp)
+
+                                                                        ),
+                                                                moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
+        {
+            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
+        {
+            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                    CrossProductVec3f(cameraFront,
+                                                                                      cameraUp)
+
+                                                                        ),
+                                                                moveSpeed));
         }
 
         /* Drawing */
@@ -279,10 +318,7 @@ int main(int argc, char **argv)
         glBindTexture(GL_TEXTURE_2D, texture[1]);
         glBindVertexArray(VAO);
 
-        float radius = 10.0f;
-        float camX = sin(glfwGetTime()) * radius;
-        float camZ = cos(glfwGetTime()) * radius;
-        Mat4f view = CalcLookAtMat4f(vec3f(camX, 0.0, camZ), vec3f(0.0, 0.0, 0.0), vec3f(0.0, 1.0, 0.0));
+        Mat4f view = CalcLookAtMat4f(cameraPos, AddVec3f(cameraPos, cameraFront), cameraUp);
 
         GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
         glUniformMatrix4fv(viewLoc, 1,
@@ -292,7 +328,7 @@ int main(int argc, char **argv)
         {
             Mat4f model = TranslateMat4f(&IdMat4f, cubePositions[i]);
 
-            model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(.5, 1, 0));
+            model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(deltaTime, 1, 0));
             float angle = 13 * i;
 
             model = RotateMat4f(&model,
