@@ -13,5 +13,5 @@ void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1);
     texCoord = ourTextCoord;
-    vertColor = vec4(2, 2, 2, 2);
+    vertColor = vec4(1, 1, 1, 1);
 }
