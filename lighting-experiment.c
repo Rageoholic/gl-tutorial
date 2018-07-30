@@ -14,8 +14,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define VERTEX_FILE "lighting-experiment.vert"
+#define CUBE_VERTEX_FILE "lighting-experiment.vert"
 #define CUBE_FRAG_FILE "lighting-experiment.frag"
+#define LIGHT_VERTEX_FILE "lighting-experiment-light.vert"
 #define LIGHT_FRAG_FILE "lighting-experiment-light.frag"
 #define TEXTURE_PATH "data/container.jpg"
 #define TEXTURE_PATH_2 "data/awesomeface.png"
@@ -86,7 +87,83 @@ void MouseCallback(GLFWwindow *window, double xpos, double ypos)
     front.z = sin(DegToRad(yaw)) * cos(DegToRad(pitch));
     cameraFront = NormalizeVec3f(front);
 }
+static void ProcessInput(float deltaTime, GLFWwindow *win,
+                         const Vec3f *cameraUp, const Vec3f *cameraFront,
+                         Vec3f *cameraPos, Vec3f *modelPos)
+{
+    float moveSpeed = MOVE_SPEED * deltaTime;
 
+    /* Input handling */
+    if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(win, true);
+    }
+    if (glfwGetKey(win, GLFW_KEY_F1) == GLFW_PRESS)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+    if (glfwGetKey(win, GLFW_KEY_F2) == GLFW_PRESS)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        *cameraPos = AddVec3f(*cameraPos, MultiplyScalarVec3f(*cameraFront, moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        *cameraPos = SubVec3f(*cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                  CrossProductVec3f(*cameraFront,
+                                                                                    *cameraUp)),
+                                                              moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        *cameraPos = SubVec3f(*cameraPos, MultiplyScalarVec3f(*cameraFront, moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        *cameraPos = AddVec3f(*cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                  CrossProductVec3f(*cameraFront,
+                                                                                    *cameraUp)),
+                                                              moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        *cameraPos = AddVec3f(*cameraPos, MultiplyScalarVec3f(NormalizeVec3f(*cameraUp),
+                                                              moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        *cameraPos = AddVec3f(*cameraPos, MultiplyScalarVec3f(NormalizeVec3f(*cameraUp),
+                                                              -moveSpeed));
+    }
+
+    if (glfwGetKey(win, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(1, 0, 0), moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_LEFT) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(-1, 0, 0), moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(0, 0, -1), moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(0, 0, 1), moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(0, 1, 0), moveSpeed));
+    }
+    if (glfwGetKey(win, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+    {
+        *modelPos = AddVec3f(*modelPos, MultiplyScalarVec3f(vec3f(0, -1, 0), moveSpeed));
+    }
+}
 // TODO: Look into dynamic code loading for the rendering functions because
 // *not* having that is a pain
 int main(int argc, char **argv)
@@ -134,49 +211,48 @@ int main(int argc, char **argv)
     glfwSetFramebufferSizeCallback(win, FramebufferResize);
 
     /* Prep vertex array */
-
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, 0.5f, -0.5f,
-        0.5f, 0.5f, -0.5f,
-        -0.5f, 0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
 
-        -0.5f, -0.5f, 0.5f,
-        0.5f, -0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, -0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
 
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, 0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, 0.5f,
-        -0.5f, 0.5f, 0.5f,
+        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
 
-        0.5f, 0.5f, 0.5f,
-        0.5f, 0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
 
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, 0.5f,
-        0.5f, -0.5f, 0.5f,
-        -0.5f, -0.5f, 0.5f,
-        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
 
-        -0.5f, 0.5f, -0.5f,
-        0.5f, 0.5f, -0.5f,
-        0.5f, 0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, 0.5f, -0.5f};
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f};
 
     unsigned int cubeVAO;
     glGenVertexArrays(1, &cubeVAO);
@@ -193,37 +269,60 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
     glBindVertexArray(lightVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     /* Set up our shaders */
     /* TODO: better shader abstraction */
-    GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint cubeVertShader = glCreateShader(GL_VERTEX_SHADER);
     {
 
-        ssize_t vertShaderSourceSize;
-        char *vertShaderSource = MapFileToROBuffer(VERTEX_FILE, NULL, &vertShaderSourceSize);
+        ssize_t cubeVertShaderSourceSize;
+        char *cubeVertShaderSource = MapFileToROBuffer(CUBE_VERTEX_FILE, NULL, &cubeVertShaderSourceSize);
 
-        glShaderSource(vertShader, 1, (const char **)&vertShaderSource, NULL);
-        glCompileShader(vertShader);
+        glShaderSource(cubeVertShader, 1, (const char **)&cubeVertShaderSource, NULL);
+        glCompileShader(cubeVertShader);
 
         int success;
-        glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
+        glGetShaderiv(cubeVertShader, GL_COMPILE_STATUS, &success);
         if (!success)
         {
             char infoLog[512];
-            glGetShaderInfoLog(vertShader, 512, NULL, infoLog);
+            glGetShaderInfoLog(cubeVertShader, 512, NULL, infoLog);
             fprintf(stderr, "COMPILE ERROR IN VERT SHADER %s\n", infoLog);
         }
-        UnmapMappedBuffer(vertShaderSource, vertShaderSourceSize);
+        UnmapMappedBuffer(cubeVertShaderSource, cubeVertShaderSourceSize);
+    }
+
+    GLuint lightVertShader = glCreateShader(GL_VERTEX_SHADER);
+    {
+
+        ssize_t lightVertShaderSourceSize;
+        char *lightVertShaderSource = MapFileToROBuffer(CUBE_VERTEX_FILE, NULL, &lightVertShaderSourceSize);
+
+        glShaderSource(lightVertShader, 1, (const char **)&lightVertShaderSource, NULL);
+        glCompileShader(lightVertShader);
+
+        int success;
+        glGetShaderiv(lightVertShader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            char infoLog[512];
+            glGetShaderInfoLog(lightVertShader, 512, NULL, infoLog);
+            fprintf(stderr, "COMPILE ERROR IN VERT SHADER %s\n", infoLog);
+        }
+        UnmapMappedBuffer(lightVertShaderSource, lightVertShaderSourceSize);
     }
     GLuint fragShaderCube = glCreateShader(GL_FRAGMENT_SHADER);
     {
@@ -263,7 +362,7 @@ int main(int argc, char **argv)
     }
     GLuint cubeProg = glCreateProgram();
     {
-        glAttachShader(cubeProg, vertShader);
+        glAttachShader(cubeProg, cubeVertShader);
         glAttachShader(cubeProg, fragShaderCube);
         glLinkProgram(cubeProg);
         int success;
@@ -279,7 +378,7 @@ int main(int argc, char **argv)
 
     GLuint lightProg = glCreateProgram();
     {
-        glAttachShader(lightProg, vertShader);
+        glAttachShader(lightProg, lightVertShader);
         glAttachShader(lightProg, fragShaderLight);
         glLinkProgram(lightProg);
         int success;
@@ -300,14 +399,15 @@ int main(int argc, char **argv)
     Vec3f objectColor = (Vec3f){1, .5, .31};
     Vec3f lightingColor = (Vec3f){1, 1, 1};
     glUniform3fv(glGetUniformLocation(cubeProg, "objectColor"), 1, (float *)&objectColor);
-    glUniform3fv(glGetUniformLocation(cubeProg, "lightingColor"), 1, (float *)&lightingColor);
+    glUniform3fv(glGetUniformLocation(cubeProg, "lightColor"), 1, (float *)&lightingColor);
 
     clock_t totalTime = 0;
     size_t numSamples = 0;
 
     Vec3f cameraPos = vec3f(0.0f, 0.0f, 3.0f);
-
     Vec3f cameraUp = vec3f(0.0f, 1.0f, 0.0f);
+
+    Vec3f modelPos = vec3f(0, 0, 0);
 
     float deltaTime = 0.0f; // Time between current frame and last frame
     float lastFrame = 0.0f; // Time of last frame
@@ -320,48 +420,7 @@ int main(int argc, char **argv)
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
-        float moveSpeed = MOVE_SPEED * deltaTime;
-
-        /* Input handling */
-        if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(win, true);
-        }
-        if (glfwGetKey(win, GLFW_KEY_F1) == GLFW_PRESS)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-        if (glfwGetKey(win, GLFW_KEY_F2) == GLFW_PRESS)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
-        {
-            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
-        }
-        if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
-        {
-            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
-                                                                    CrossProductVec3f(cameraFront,
-                                                                                      cameraUp)
-
-                                                                        ),
-                                                                moveSpeed));
-        }
-        if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
-        {
-            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
-        }
-        if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
-        {
-            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
-                                                                    CrossProductVec3f(cameraFront,
-                                                                                      cameraUp)
-
-                                                                        ),
-                                                                moveSpeed));
-        }
+        ProcessInput(deltaTime, win, &cameraUp, &cameraFront, &cameraPos, &modelPos);
 
         /* Drawing */
         glClearColor(.1, .1, .1, 1);
@@ -376,7 +435,7 @@ int main(int argc, char **argv)
         Mat4f proj = CreatePerspectiveMat4f(DegToRad(fov), 800. / 600., .1, 1000);
 
         Mat4f model = IdMat4f;
-
+        Vec3f lightPos = vec3f(1.2, 1.0, 2.0);
         {
             GLuint viewLoc = glGetUniformLocation(cubeProg, "view");
             glUniformMatrix4fv(viewLoc, 1,
@@ -385,9 +444,13 @@ int main(int argc, char **argv)
             GLuint projLoc = glGetUniformLocation(cubeProg, "projection");
             glUniformMatrix4fv(projLoc, 1,
                                GL_FALSE, (float *)&proj);
+            Mat4f cubeModel = TranslateMat4f(&model, modelPos);
 
             glUniformMatrix4fv(glGetUniformLocation(cubeProg, "model"), 1,
-                               GL_FALSE, (float *)&model);
+                               GL_FALSE, (float *)&cubeModel);
+
+            GLuint lightLoc = glGetUniformLocation(cubeProg, "lightPos");
+            glUniform3fv(lightLoc, 1, (float *)&lightPos);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -401,11 +464,11 @@ int main(int argc, char **argv)
             glUniformMatrix4fv(projLoc, 1,
                                GL_FALSE, (float *)&proj);
 
-            model = TranslateMat4f(&model, vec3f(1.2, 1.0, 2.0));
-            model = ScaleMat4f(&model, vec3f(.2, .2, .2));
+            Mat4f lightModel = TranslateMat4f(&model, lightPos);
+            lightModel = ScaleMat4f(&lightModel, vec3f(.2, .2, .2));
 
             glUniformMatrix4fv(glGetUniformLocation(cubeProg, "model"), 1,
-                               GL_FALSE, (float *)&model);
+                               GL_FALSE, (float *)&lightModel);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
         clock_t end = clock();
