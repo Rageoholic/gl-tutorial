@@ -402,7 +402,7 @@ int main(int argc, char **argv)
     glUniform3fv(glGetUniformLocation(cubeProg, "lightColor"), 1, (float *)&lightingColor);
 
     clock_t totalTime = 0;
-    size_t numSamples = 0;
+    size_t numFrames = 0;
 
     Vec3f cameraPos = vec3f(0.0f, 0.0f, 3.0f);
     Vec3f cameraUp = vec3f(0.0f, 1.0f, 0.0f);
@@ -415,7 +415,6 @@ int main(int argc, char **argv)
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
-
         clock_t begin = clock();
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -451,6 +450,9 @@ int main(int argc, char **argv)
 
             GLuint lightLoc = glGetUniformLocation(cubeProg, "lightPos");
             glUniform3fv(lightLoc, 1, (float *)&lightPos);
+
+            GLuint viewPosLoc = glGetUniformLocation(cubeProg, "viewPos");
+            glUniform3fv(viewPosLoc, 1, (float *)&cameraPos);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -471,19 +473,18 @@ int main(int argc, char **argv)
                                GL_FALSE, (float *)&lightModel);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
         clock_t end = clock();
 
-        printf("Took %f milliseconds\n", (double)(end - begin) / CLOCKS_PER_SEC * 1000);
-
-        totalTime += end - begin;
-        numSamples++;
+        printf("Took %f milliseconds\n", (double)(end - begin) * 1000 / CLOCKS_PER_SEC);
+        totalTime += (end - begin);
+        numFrames++;
 
         /* Final book keeping */
         glfwSwapBuffers(win);
         glfwPollEvents();
     }
-    printf("Took %f milliseconds  on average\n",
-           (double)(totalTime / numSamples) / CLOCKS_PER_SEC * 1000);
+    printf("took %f milliseconds on average\n", (double)totalTime / numFrames * 1000 / CLOCKS_PER_SEC);
     glfwTerminate();
     return 0;
 }
