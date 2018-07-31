@@ -1,6 +1,8 @@
 #ifndef RGL_H
 #define RGL_H
+#include "glad.h"
 #include "rutils/def.h"
+#include "rutils/math.h"
 #ifdef __cplusplus
 extern "C"
 {
@@ -13,7 +15,19 @@ extern "C"
         float a;
     } Color;
 
+    typedef struct
+    {
+        GLuint _id;
+    } ShaderProg;
+
     void RGLClearScreen(Color c);
+
+    void UseShaderProg(ShaderProg s);
+    void SetUniformVec3fShaderProg(ShaderProg s, char *uniformName, Vec3f *v);
+    void SetUniformMat4fShaderProg(ShaderProg s, char *uniformName, Mat4f *m);
+    void SetUniformFloatShaderProg(ShaderProg s, char *uniformName, float f);
+
+    ShaderProg CreateShaderProg(char *vertShaderPath, char *fragShaderPath);
 #ifdef __cplusplus
 }
 #endif

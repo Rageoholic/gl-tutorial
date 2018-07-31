@@ -22,19 +22,27 @@
 #define TEXTURE_PATH_2 "data/awesomeface.png"
 #define MOVE_SPEED 4
 
-Vec3f cameraFront = (Vec3f){0.0f, 0.0f, -1.0f};
-static void FramebufferResize(GLFWwindow *win, int width, int height)
-{
-    ignore win;
-    glViewport(0, 0, width, height);
-}
-
 float lastX = 640;
 float lastY = 360;
 float yaw = -90;
 float pitch = 0;
 bool firstMouse = true;
 float fov = 70;
+
+typedef struct Material
+{
+    Vec3f ambient;
+    Vec3f diffuse;
+    Vec3f specular;
+    float shininess;
+} Material;
+
+Vec3f cameraFront = (Vec3f){0.0f, 0.0f, -1.0f};
+static void FramebufferResize(GLFWwindow *win, int width, int height)
+{
+    ignore win;
+    glViewport(0, 0, width, height);
+}
 
 void ScrollCallback(GLFWwindow *win, double xoffset, double yoffset)
 {
@@ -284,122 +292,26 @@ int main(int argc, char **argv)
     glEnableVertexAttribArray(0);
 
     /* Set up our shaders */
-    /* TODO: better shader abstraction */
-    GLuint cubeVertShader = glCreateShader(GL_VERTEX_SHADER);
-    {
-
-        ssize_t cubeVertShaderSourceSize;
-        char *cubeVertShaderSource = MapFileToROBuffer(CUBE_VERTEX_FILE, NULL, &cubeVertShaderSourceSize);
-
-        glShaderSource(cubeVertShader, 1, (const char **)&cubeVertShaderSource, NULL);
-        glCompileShader(cubeVertShader);
-
-        int success;
-        glGetShaderiv(cubeVertShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(cubeVertShader, 512, NULL, infoLog);
-            fprintf(stderr, "COMPILE ERROR IN VERT SHADER %s\n", infoLog);
-        }
-        UnmapMappedBuffer(cubeVertShaderSource, cubeVertShaderSourceSize);
-    }
-
-    GLuint lightVertShader = glCreateShader(GL_VERTEX_SHADER);
-    {
-
-        ssize_t lightVertShaderSourceSize;
-        char *lightVertShaderSource = MapFileToROBuffer(CUBE_VERTEX_FILE, NULL, &lightVertShaderSourceSize);
-
-        glShaderSource(lightVertShader, 1, (const char **)&lightVertShaderSource, NULL);
-        glCompileShader(lightVertShader);
-
-        int success;
-        glGetShaderiv(lightVertShader, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(lightVertShader, 512, NULL, infoLog);
-            fprintf(stderr, "COMPILE ERROR IN VERT SHADER %s\n", infoLog);
-        }
-        UnmapMappedBuffer(lightVertShaderSource, lightVertShaderSourceSize);
-    }
-    GLuint fragShaderCube = glCreateShader(GL_FRAGMENT_SHADER);
-    {
-        ssize_t fragShaderCubeSourceSize;
-        char *fragShaderCubeSource = MapFileToROBuffer(CUBE_FRAG_FILE, NULL, &fragShaderCubeSourceSize);
-
-        glShaderSource(fragShaderCube, 1, (const char **)&fragShaderCubeSource, NULL);
-        glCompileShader(fragShaderCube);
-
-        int success;
-        glGetShaderiv(fragShaderCube, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(fragShaderCube, 512, NULL, infoLog);
-            fprintf(stderr, "COMPILE ERROR IN FRAG SHADER %s\n", infoLog);
-        }
-        UnmapMappedBuffer(fragShaderCubeSource, fragShaderCubeSourceSize);
-    }
-    GLuint fragShaderLight = glCreateShader(GL_FRAGMENT_SHADER);
-    {
-        ssize_t fragShaderLightSourceSize;
-        char *fragShaderLightSource = MapFileToROBuffer(LIGHT_FRAG_FILE, NULL, &fragShaderLightSourceSize);
-
-        glShaderSource(fragShaderLight, 1, (const char **)&fragShaderLightSource, NULL);
-        glCompileShader(fragShaderLight);
-
-        int success;
-        glGetShaderiv(fragShaderLight, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetShaderInfoLog(fragShaderLight, 512, NULL, infoLog);
-            fprintf(stderr, "COMPILE ERROR IN FRAG SHADER LIGHT %s\n", infoLog);
-        }
-        UnmapMappedBuffer(fragShaderLightSource, fragShaderLightSourceSize);
-    }
-    GLuint cubeProg = glCreateProgram();
-    {
-        glAttachShader(cubeProg, cubeVertShader);
-        glAttachShader(cubeProg, fragShaderCube);
-        glLinkProgram(cubeProg);
-        int success;
-        glGetShaderiv(cubeProg, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetProgramInfoLog(cubeProg, 512, NULL, infoLog);
-            fprintf(stderr, "LINK ERROR IN SHADER PROG %s\n", infoLog);
-            return -1;
-        }
-    }
-
-    GLuint lightProg = glCreateProgram();
-    {
-        glAttachShader(lightProg, lightVertShader);
-        glAttachShader(lightProg, fragShaderLight);
-        glLinkProgram(lightProg);
-        int success;
-        glGetShaderiv(lightProg, GL_LINK_STATUS, &success);
-        if (!success)
-        {
-            char infoLog[512];
-            glGetProgramInfoLog(lightProg, 512, NULL, infoLog);
-            fprintf(stderr, "LINK ERROR IN SHADER PROG %s\n", infoLog);
-            return -1;
-        }
-    }
-    /* Load our texture */
+    ShaderProg cubeProg = CreateShaderProg(CUBE_VERTEX_FILE, CUBE_FRAG_FILE);
+    ShaderProg lightProg = CreateShaderProg(LIGHT_VERTEX_FILE, LIGHT_FRAG_FILE);
 
     glEnable(GL_DEPTH_TEST);
-    glUseProgram(cubeProg);
+    UseShaderProg(cubeProg);
 
     Vec3f objectColor = (Vec3f){1, .5, .31};
     Vec3f lightingColor = (Vec3f){1, 1, 1};
-    glUniform3fv(glGetUniformLocation(cubeProg, "objectColor"), 1, (float *)&objectColor);
-    glUniform3fv(glGetUniformLocation(cubeProg, "lightColor"), 1, (float *)&lightingColor);
+    SetUniformVec3fShaderProg(cubeProg, "objectColor", &objectColor);
+    SetUniformVec3fShaderProg(cubeProg, "lightingColor", &lightingColor);
+
+    Material cube = {{1, .5, .31},
+                     {1, .5, .31},
+                     {.5, .5, .5},
+                     32};
+
+    SetUniformVec3fShaderProg(cubeProg, "material.ambient", &cube.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "material.diffuse", &cube.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "material.specular", &cube.specular);
+    SetUniformFloatShaderProg(cubeProg, "material.shininess", cube.shininess);
 
     clock_t totalTime = 0;
     size_t numFrames = 0;
@@ -425,8 +337,6 @@ int main(int argc, char **argv)
         glClearColor(.1, .1, .1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(cubeProg);
-
         glBindVertexArray(cubeVAO);
 
         Mat4f view = CalcLookAtMat4f(cameraPos, AddVec3f(cameraPos, cameraFront), cameraUp);
@@ -434,43 +344,26 @@ int main(int argc, char **argv)
         Mat4f proj = CreatePerspectiveMat4f(DegToRad(fov), 800. / 600., .1, 1000);
 
         Mat4f model = IdMat4f;
+        UseShaderProg(cubeProg);
         Vec3f lightPos = vec3f(1.2, 1.0, 2.0);
         {
-            GLuint viewLoc = glGetUniformLocation(cubeProg, "view");
-            glUniformMatrix4fv(viewLoc, 1,
-                               GL_FALSE, (float *)&view);
-
-            GLuint projLoc = glGetUniformLocation(cubeProg, "projection");
-            glUniformMatrix4fv(projLoc, 1,
-                               GL_FALSE, (float *)&proj);
             Mat4f cubeModel = TranslateMat4f(&model, modelPos);
-
-            glUniformMatrix4fv(glGetUniformLocation(cubeProg, "model"), 1,
-                               GL_FALSE, (float *)&cubeModel);
-
-            GLuint lightLoc = glGetUniformLocation(cubeProg, "lightPos");
-            glUniform3fv(lightLoc, 1, (float *)&lightPos);
-
-            GLuint viewPosLoc = glGetUniformLocation(cubeProg, "viewPos");
-            glUniform3fv(viewPosLoc, 1, (float *)&cameraPos);
+            SetUniformMat4fShaderProg(cubeProg, "view", &view);
+            SetUniformMat4fShaderProg(cubeProg, "projection", &proj);
+            SetUniformMat4fShaderProg(cubeProg, "model", &cubeModel);
+            SetUniformVec3fShaderProg(cubeProg, "lightPos", &lightPos);
+            SetUniformVec3fShaderProg(cubeProg, "viewPos", &cameraPos);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        glUseProgram(lightProg);
+        glUseProgram(lightProg._id);
         {
-            GLuint viewLoc = glGetUniformLocation(cubeProg, "view");
-            glUniformMatrix4fv(viewLoc, 1,
-                               GL_FALSE, (float *)&view);
-
-            GLuint projLoc = glGetUniformLocation(cubeProg, "projection");
-            glUniformMatrix4fv(projLoc, 1,
-                               GL_FALSE, (float *)&proj);
-
             Mat4f lightModel = TranslateMat4f(&model, lightPos);
             lightModel = ScaleMat4f(&lightModel, vec3f(.2, .2, .2));
 
-            glUniformMatrix4fv(glGetUniformLocation(cubeProg, "model"), 1,
-                               GL_FALSE, (float *)&lightModel);
+            SetUniformMat4fShaderProg(lightProg, "view", &view);
+            SetUniformMat4fShaderProg(lightProg, "projection", &proj);
+            SetUniformMat4fShaderProg(lightProg, "model", &lightModel);
         }
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
