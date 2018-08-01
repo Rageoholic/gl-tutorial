@@ -17,3 +17,6 @@
 *.cap
 \#*\#
 /lighting-experiment
+/.user.mk
+/multiple-lights
+/textured-lighting

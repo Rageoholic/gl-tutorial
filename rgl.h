@@ -23,9 +23,10 @@ extern "C"
     void RGLClearScreen(Color c);
 
     void UseShaderProg(ShaderProg s);
-    void SetUniformVec3fShaderProg(ShaderProg s, char *uniformName, Vec3f *v);
+    void SetUniformVec3fShaderProg(ShaderProg s, char *uniformName, Vec3f v);
     void SetUniformMat4fShaderProg(ShaderProg s, char *uniformName, Mat4f *m);
     void SetUniformFloatShaderProg(ShaderProg s, char *uniformName, float f);
+    void SetUniformIntShaderProg(ShaderProg s, char *uniformName, int i);
 
     ShaderProg CreateShaderProg(char *vertShaderPath, char *fragShaderPath);
 #ifdef __cplusplus

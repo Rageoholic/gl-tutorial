@@ -1,6 +1,7 @@
 COMPONENTS = gl-basic-rendering-ebo gl-basic-rendering gl-vertex-shader-color	\
 gl-uniform-color gl-passed-color gl-texture-basics gl-transform-basics		\
-gl-transform-perspective lighting-experiment $(SHADER_TESTS)
+gl-transform-perspective lighting-experiment textured-lighting	\
+multiple-lights $(SHADER_TESTS)
 
 WARNINGS = -Wall -Wextra -Werror -Wno-error=unused-variable	\
 -Wno-error=unused-parameter -Wno-missing-field-initializers -Wno-unused-function
@@ -47,6 +48,8 @@ gl-texture-basics: rgl.o gl-texture-basics.o stb_image.o rutils.a glad.o
 gl-transform-basics: rgl.o gl-transform-basics.o stb_image.o rutils.a glad.o
 gl-transform-perspective: rgl.o gl-transform-perspective.o stb_image.o rutils.a glad.o
 lighting-experiment: rgl.o lighting-experiment.o stb_image.o rutils.a glad.o
+textured-lighting: rgl.o textured-lighting.o stb_image.o rutils.a glad.o
+multiple-lights: rgl.o multiple-lights.o stb_image.o rutils.a glad.o
 
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CCFLAGS)

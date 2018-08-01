@@ -13,9 +13,9 @@ void UseShaderProg(ShaderProg s)
     glUseProgram(s._id);
 }
 
-void SetUniformVec3fShaderProg(ShaderProg s, char *uniformName, Vec3f *v)
+void SetUniformVec3fShaderProg(ShaderProg s, char *uniformName, Vec3f v)
 {
-    glUniform3fv(glGetUniformLocation(s._id, uniformName), 1, (float *)v);
+    glUniform3fv(glGetUniformLocation(s._id, uniformName), 1, (float *)&v);
 }
 
 void SetUniformMat4fShaderProg(ShaderProg s, char *uniformName, Mat4f *m)
@@ -26,6 +26,11 @@ void SetUniformMat4fShaderProg(ShaderProg s, char *uniformName, Mat4f *m)
 void SetUniformFloatShaderProg(ShaderProg s, char *uniformName, float f)
 {
     glUniform1f(glGetUniformLocation(s._id, uniformName), f);
+}
+
+void SetUniformIntShaderProg(ShaderProg s, char *uniformName, int i)
+{
+    glUniform1i(glGetUniformLocation(s._id, uniformName), i);
 }
 
 ShaderProg CreateShaderProg(char *vertShaderPath, char *fragShaderPath)

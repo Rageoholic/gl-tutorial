@@ -15,12 +15,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#define CUBE_VERTEX_FILE "lighting-experiment.vert"
-#define CUBE_FRAG_FILE "lighting-experiment.frag"
+#define CUBE_VERTEX_FILE "textured-lighting.vert"
+#define CUBE_FRAG_FILE "multiple-lights.frag"
 #define LIGHT_VERTEX_FILE "lighting-experiment-light.vert"
 #define LIGHT_FRAG_FILE "lighting-experiment-light.frag"
-#define TEXTURE_PATH "data/container.jpg"
-#define TEXTURE_PATH_2 "data/awesomeface.png"
+#define TEXTURE_PATH "data/container2.png"
+#define SPECULAR_PATH "data/container2_specular.png"
+
 #define MOVE_SPEED 8
 
 float lastX = 640;
@@ -38,6 +39,15 @@ typedef struct Material
     float shininess;
 } Material;
 
+typedef GLuint textureID;
+
+typedef struct TexturedMaterial
+{
+    textureID diffuse;
+    textureID specular;
+    float shininess;
+} TexturedMaterial;
+
 typedef struct Light
 {
     Vec3f pos;
@@ -45,7 +55,34 @@ typedef struct Light
     Vec3f ambient;
     Vec3f diffuse;
     Vec3f specular;
+    float constant;
+    float linear;
+    float quadratic;
+
 } Light;
+
+typedef struct DirectionalLight
+{
+    Vec3f dir;
+
+    Vec3f ambient;
+    Vec3f diffuse;
+    Vec3f specular;
+} DirectionalLight;
+
+typedef struct SpotLight
+{
+    Vec3f pos;
+    Vec3f dir;
+    float cutoff;
+    float outerCutoff;
+    Vec3f ambient;
+    Vec3f diffuse;
+    Vec3f specular;
+    float constant;
+    float linear;
+    float quadratic;
+} SpotLight;
 
 Vec3f cameraFront = (Vec3f){0.0f, 0.0f, -1.0f};
 static void FramebufferResize(GLFWwindow *win, int width, int height)
@@ -252,48 +289,59 @@ int main(int argc, char **argv)
 
     /* Prep vertex array */
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
 
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 
-        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,
 
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f};
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f};
 
+    Vec3f cubePositions[] = {
+        vec3f(0.0f, 0.0f, 0.0f),
+        vec3f(2.0f, 5.0f, -15.0f),
+        vec3f(-1.5f, -2.2f, -2.5f),
+        vec3f(-3.8f, -2.0f, -12.3f),
+        vec3f(2.4f, -0.4f, -3.5f),
+        vec3f(-1.7f, 3.0f, -7.5f),
+        vec3f(1.3f, -2.0f, -2.5f),
+        vec3f(1.5f, 2.0f, -2.5f),
+        vec3f(1.5f, 0.2f, -1.5f),
+        vec3f(-1.3f, 1.0f, -1.5f)};
     unsigned int cubeVAO;
     glGenVertexArrays(1, &cubeVAO);
 
@@ -311,22 +359,70 @@ int main(int argc, char **argv)
                  GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                          6 * sizeof(float),
+                          8 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                          6 * sizeof(float),
+                          8 * sizeof(float),
                           (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+                          8 * sizeof(float),
+                          (void *)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
     glBindVertexArray(lightVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
+    textureID diffuseMap;
+    glGenTextures(1, &diffuseMap);
+    {
+        int width, height, nrChannels;
+        byte *textureData = stbi_load(TEXTURE_PATH, &width,
+                                      &height, &nrChannels, 0);
+        if (textureData)
+        {
+            glBindTexture(GL_TEXTURE_2D, diffuseMap);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            stbi_image_free(textureData);
+        }
+        else
+        {
+            fputs("TEXTURE MISSING", stderr);
+        }
+    }
+
+    textureID specularMap;
+    glGenTextures(1, &specularMap);
+    {
+        int width, height, nrChannels;
+        byte *textureData = stbi_load(SPECULAR_PATH, &width,
+                                      &height, &nrChannels, 0);
+        if (textureData)
+        {
+            glBindTexture(GL_TEXTURE_2D, specularMap);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            stbi_image_free(textureData);
+        }
+        else
+        {
+            fputs("TEXTURE MISSING", stderr);
+        }
+    }
 
     /* Set up our shaders */
     ShaderProg cubeProg = CreateShaderProg(CUBE_VERTEX_FILE, CUBE_FRAG_FILE);
@@ -339,14 +435,10 @@ int main(int argc, char **argv)
 
     SetUniformVec3fShaderProg(cubeProg, "objectColor", objectColor);
 
-    Material cube = {{1, .5, .31},
-                     {1, .5, .31},
-                     {.5, .5, .5},
-                     32};
+    TexturedMaterial cube = {0, 1, 32};
 
-    SetUniformVec3fShaderProg(cubeProg, "material.ambient", cube.ambient);
-    SetUniformVec3fShaderProg(cubeProg, "material.diffuse", cube.diffuse);
-    SetUniformVec3fShaderProg(cubeProg, "material.specular", cube.specular);
+    SetUniformIntShaderProg(cubeProg, "material.diffuse", cube.diffuse);
+    SetUniformIntShaderProg(cubeProg, "material.specular", cube.specular);
     SetUniformFloatShaderProg(cubeProg, "material.shininess", cube.shininess);
 
 #ifdef PROFILING
@@ -359,16 +451,60 @@ int main(int argc, char **argv)
 
     Vec3f modelPos = vec3f(0, 0, 0);
 
-    Light light = {{1.2, 1, 2},
-                   {.2, .2, .2},
-                   {.5, .5, .5},
-                   {1, 1, 1}};
+    DirectionalLight dlight = {{-.2, -1, -.3},
+                               {.1, .01, .01},
+                               {.2, .1, .1},
+                               {.4, .0, .0}};
 
-    SetUniformVec3fShaderProg(cubeProg, "light.ambient", light.ambient);
-    SetUniformVec3fShaderProg(cubeProg, "light.diffuse", light.diffuse);
-    SetUniformVec3fShaderProg(cubeProg, "light.specular", light.specular);
-    SetUniformVec3fShaderProg(cubeProg, "light.pos", light.pos);
+    Light light = {{0},
+                   {.4, .2, .1},
+                   {.8, .2, .3},
+                   {1, .3, .3},
+                   1,
+                   .9,
+                   .032};
+    Vec3f lightLocations[4] = {{1.2, 3, 4},
+                               {-.3, .4, .8},
+                               {-2.1, .5, -.2},
+                               {-3.9, .4, .2}};
 
+    SetUniformVec3fShaderProg(cubeProg, "dirLight.ambient", dlight.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "dirLight.diffuse", dlight.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "dirLight.specular", dlight.specular);
+    SetUniformVec3fShaderProg(cubeProg, "dirLight.dir", dlight.dir);
+
+    /* You *can* do this better with sprintf maybe? Look into that */
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[0].ambient", light.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[0].diffuse", light.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[0].specular", light.specular);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[0].pos", AddVec3f(light.pos, lightLocations[0]));
+    SetUniformFloatShaderProg(cubeProg, "pointLights[0].constant", light.constant);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[0].linear", light.linear);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[0].quadratic", light.quadratic);
+
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[1].ambient", light.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[1].diffuse", light.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[1].specular", light.specular);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[1].pos", AddVec3f(light.pos, lightLocations[1]));
+    SetUniformFloatShaderProg(cubeProg, "pointLights[1].constant", light.constant);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[1].linear", light.linear);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[1].quadratic", light.quadratic);
+
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[2].ambient", light.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[2].diffuse", light.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[2].specular", light.specular);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[2].pos", AddVec3f(light.pos, lightLocations[2]));
+    SetUniformFloatShaderProg(cubeProg, "pointLights[2].constant", light.constant);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[2].linear", light.linear);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[2].quadratic", light.quadratic);
+
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[3].ambient", light.ambient);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[3].diffuse", light.diffuse);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[3].specular", light.specular);
+    SetUniformVec3fShaderProg(cubeProg, "pointLights[3].pos", AddVec3f(light.pos, lightLocations[3]));
+    SetUniformFloatShaderProg(cubeProg, "pointLights[3].constant", light.constant);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[3].linear", light.linear);
+    SetUniformFloatShaderProg(cubeProg, "pointLights[3].quadratic", light.quadratic);
     float deltaTime = 0.0f; // Time between current frame and last frame
     float lastFrame = 0.0f; // Time of last frame
 
@@ -386,17 +522,22 @@ int main(int argc, char **argv)
                      &cameraPos, &modelPos);
 
         /* Drawing */
-        glClearColor(.1, .1, .1, 1);
+        glClearColor(.1, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularMap);
 
         glBindVertexArray(cubeVAO);
 
+        Vec3f officialCameraFront = AddVec3f(cameraPos, cameraFront);
         Mat4f view = CalcLookAtMat4f(cameraPos,
                                      AddVec3f(cameraPos, cameraFront),
                                      cameraUp);
 
         Mat4f proj = CreatePerspectiveMat4f(DegToRad(fov),
-                                            800. / 600.,
+                                            1280. / 720.,
                                             .1,
                                             1000);
 
@@ -404,24 +545,37 @@ int main(int argc, char **argv)
         UseShaderProg(cubeProg);
 
         {
-            Mat4f cubeModel = TranslateMat4f(&model, modelPos);
+
             SetUniformMat4fShaderProg(cubeProg, "view", &view);
             SetUniformMat4fShaderProg(cubeProg, "projection", &proj);
-            SetUniformMat4fShaderProg(cubeProg, "model", &cubeModel);
+
             SetUniformVec3fShaderProg(cubeProg, "viewPos", cameraPos);
         }
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        glUseProgram(lightProg._id);
+        for (int i = 0; i < 10; i++)
         {
-            Mat4f lightModel = TranslateMat4f(&model, light.pos);
+            Mat4f cubeModel = TranslateMat4f(&model, cubePositions[i]);
+            cubeModel = TranslateMat4f(&cubeModel, modelPos);
+            float angle = 13 * i;
+            cubeModel = RotateMat4f(&cubeModel, DegToRad(angle), (Vec3f){1, .3, .5});
+
+            SetUniformMat4fShaderProg(cubeProg, "model", &cubeModel);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        UseShaderProg(lightProg);
+        SetUniformMat4fShaderProg(lightProg, "view", &view);
+        SetUniformMat4fShaderProg(lightProg, "projection", &proj);
+
+        glBindVertexArray(lightVAO);
+        for (int i = 0; i < 4; i++)
+        {
+            Mat4f lightModel = TranslateMat4f(&model, AddVec3f(light.pos, lightLocations[i]));
             lightModel = ScaleMat4f(&lightModel, vec3f(.2, .2, .2));
 
-            SetUniformMat4fShaderProg(lightProg, "view", &view);
-            SetUniformMat4fShaderProg(lightProg, "projection", &proj);
             SetUniformMat4fShaderProg(lightProg, "model", &lightModel);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
 #ifdef PROFILING
         /* TODO: profiling info wants to get rendered on screen. This shit where
 	   we print stuff is *terrible* and emacs's gud support hates it */
