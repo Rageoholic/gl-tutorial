@@ -207,26 +207,33 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
 
     if (glfwGetKey(win, GLFW_KEY_RIGHT) == GLFW_PRESS)
     {
-        *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(1, 0, 0),
-                                                 moveSpeed));
+        *modelPos = SubVec3f(*modelPos,
+                             MultiplyScalarVec3f(
+                                 NormalizeVec3f(CrossProductVec3f(
+                                     *cameraUp,
+                                     direction)),
+                                 moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_LEFT) == GLFW_PRESS)
     {
+
         *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(-1, 0, 0),
-                                                 moveSpeed));
+                             MultiplyScalarVec3f(
+                                 NormalizeVec3f(CrossProductVec3f(
+                                     *cameraUp,
+                                     direction)),
+                                 moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS)
     {
         *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(0, 0, -1),
+                             MultiplyScalarVec3f(direction,
                                                  moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS)
     {
-        *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(0, 0, 1),
+        *modelPos = SubVec3f(*modelPos,
+                             MultiplyScalarVec3f(direction,
                                                  moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
