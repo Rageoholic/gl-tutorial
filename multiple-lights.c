@@ -148,6 +148,7 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
 {
     float moveSpeed = MOVE_SPEED * deltaTime;
 
+    Vec3f direction = NormalizeVec3f((Vec3f){cameraFront->x, 0, cameraFront->z});
     /* Input handling */
     if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -164,7 +165,7 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
     if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
     {
         *cameraPos = AddVec3f(*cameraPos,
-                              MultiplyScalarVec3f(*cameraFront,
+                              MultiplyScalarVec3f(direction,
                                                   moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
@@ -172,14 +173,14 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
         *cameraPos = SubVec3f(*cameraPos,
                               MultiplyScalarVec3f(NormalizeVec3f(
                                                       CrossProductVec3f(
-                                                          *cameraFront,
+                                                          direction,
                                                           *cameraUp)),
                                                   moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
     {
         *cameraPos = SubVec3f(*cameraPos,
-                              MultiplyScalarVec3f(*cameraFront,
+                              MultiplyScalarVec3f(direction,
                                                   moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
@@ -187,7 +188,7 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
         *cameraPos = AddVec3f(*cameraPos,
                               MultiplyScalarVec3f(
                                   NormalizeVec3f(CrossProductVec3f(
-                                      *cameraFront,
+                                      direction,
                                       *cameraUp)),
                                   moveSpeed));
     }
