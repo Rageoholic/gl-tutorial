@@ -6,20 +6,86 @@
 #include "rutils/math.h"
 #include "stb_image.h"
 
+#define countof(x) (sizeof(x) / sizeof(x[0]))
+
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
-#define VERTEX_FILE "transform-render.vert"
+#define VERTEX_FILE "transform-projection.vert"
 #define FRAG_FILE "render-with-2-textures.frag"
 #define TEXTURE_PATH "data/container.jpg"
 #define TEXTURE_PATH_2 "data/awesomeface.png"
+#define MOVE_SPEED 4
 
+Vec3f cameraFront = (Vec3f){0.0f, 0.0f, -1.0f};
 static void FramebufferResize(GLFWwindow *win, int width, int height)
 {
     ignore win;
     glViewport(0, 0, width, height);
 }
+
+float lastX = 640;
+float lastY = 360;
+float yaw = -90;
+float pitch = 0;
+bool firstMouse = true;
+float fov = 70;
+
+void ScrollCallback(GLFWwindow *win, double xoffset, double yoffset)
+{
+    ignore win;
+    ignore xoffset;
+    if (fov >= 1 && fov <= 70)
+    {
+        fov -= yoffset * 2;
+    }
+    if (fov <= 1)
+    {
+        fov = 1;
+    }
+    if (fov >= 70)
+    {
+        fov = 70;
+    }
+}
+
+void MouseCallback(GLFWwindow *window, double xpos, double ypos)
+{
+    ignore window;
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.05;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    Vec3f front;
+    front.x = cos(DegToRad(yaw)) * cos(DegToRad(pitch));
+    front.y = sin(DegToRad(pitch));
+    front.z = sin(DegToRad(yaw)) * cos(DegToRad(pitch));
+    cameraFront = NormalizeVec3f(front);
+}
+
 // TODO: Look into dynamic code loading for the rendering functions because
 // *not* having that is a pain
 int main(int argc, char **argv)
@@ -29,6 +95,7 @@ int main(int argc, char **argv)
 
     /* Window setup */
     glfwInit();
+
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -36,7 +103,8 @@ int main(int argc, char **argv)
     stbi_set_flip_vertically_on_load(true);
 
     GLFWwindow *win = glfwCreateWindow(1280, 720, "LearnOpenGL", NULL, NULL);
-    glfwSetWindowAspectRatio(win, 800, 600);
+    glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetWindowAspectRatio(win, 1280, 720);
     if (win == NULL)
     {
         fputs("Failed to make window", stderr);
@@ -45,6 +113,8 @@ int main(int argc, char **argv)
     }
 
     glfwMakeContextCurrent(win);
+    glfwSetScrollCallback(win, ScrollCallback);
+    glfwSetCursorPosCallback(win, MouseCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -63,17 +133,14 @@ int main(int argc, char **argv)
     glfwSetFramebufferSizeCallback(win, FramebufferResize);
 
     /* Prep vertex array */
-
     float vertices[] = {
-
         0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
         -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,  // top left
+        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
     };
-
-    u32 indices[] = {0, 1, 3,
-                     1, 2, 3};
 
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -81,7 +148,7 @@ int main(int argc, char **argv)
     glBindVertexArray(VAO);
 
     /* Set up vertex buffer */
-    GLuint VBO, EBO;
+    GLuint VBO;
     glGenBuffers(1, &VBO);
 
     /* Buffer the data */
@@ -90,17 +157,10 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
 
     /* Set up our shaders */
     /* TODO: better shader abstraction */
@@ -130,8 +190,8 @@ int main(int argc, char **argv)
 
         glShaderSource(fragShader, 1, (const char **)&fragShaderSource, NULL);
         glCompileShader(fragShader);
-        int success;
 
+        int success;
         glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
         if (!success)
         {
@@ -196,63 +256,117 @@ int main(int argc, char **argv)
         }
     }
 
+    glEnable(GL_DEPTH_TEST);
     glUseProgram(shaderProg);
     glUniform1i(glGetUniformLocation(shaderProg, "texture1"), 0);
     glUniform1i(glGetUniformLocation(shaderProg, "texture2"), 1);
 
-    /* Calculate our transform */
-    Mat4f rotMat = RotateMat4f(&IdMat4f, DegToRad(-90), vec3f(0, 0, 1));
+    glClearColor(.3, .4, .5, 1);
+    clock_t totalTime = 0;
+    size_t numSamples = 0;
 
-    Mat4f rotAndScaleMat = ScaleMat4f(&rotMat, vec3f(.5, .5, .5));
+    Vec3f cameraPos = vec3f(0.0f, 0.0f, 3.0f);
 
-    glUniformMatrix4fv(glGetUniformLocation(shaderProg, "transform"), 1,
-                       GL_FALSE, (float *)&rotAndScaleMat);
+    Vec3f cameraUp = vec3f(0.0f, 1.0f, 0.0f);
+
+    float deltaTime = 0.0f; // Time between current frame and last frame
+    float lastFrame = 0.0f; // Time of last frame
+
     /* Main loop */
     while (!(glfwWindowShouldClose(win)))
     {
+
+        clock_t begin = clock();
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        float moveSpeed = MOVE_SPEED * deltaTime;
+
         /* Input handling */
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(win, true);
         }
-        if (glfwGetKey(win, GLFW_KEY_W))
+        if (glfwGetKey(win, GLFW_KEY_F1) == GLFW_PRESS)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
-        if (glfwGetKey(win, GLFW_KEY_F))
+        if (glfwGetKey(win, GLFW_KEY_F2) == GLFW_PRESS)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
+        if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS)
+        {
+            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_A) == GLFW_PRESS)
+        {
+            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                    CrossProductVec3f(cameraFront,
+                                                                                      cameraUp)
+
+                                                                        ),
+                                                                moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS)
+        {
+            cameraPos = SubVec3f(cameraPos, MultiplyScalarVec3f(cameraFront, moveSpeed));
+        }
+        if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS)
+        {
+            cameraPos = AddVec3f(cameraPos, MultiplyScalarVec3f(NormalizeVec3f(
+                                                                    CrossProductVec3f(cameraFront,
+                                                                                      cameraUp)
+
+                                                                        ),
+                                                                moveSpeed));
+        }
 
         /* Drawing */
-        RGLClearScreen((Color){.1, .5, .5});
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(shaderProg);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
-
-        Mat4f transMat = IdMat4f;
-        transMat = TranslateMat4f(&IdMat4f,
-                                  vec3f(sin(glfwGetTime() * 3 / 10),
-                                        cos(glfwGetTime() * 5 / 10),
-                                        0));
-        transMat = RotateMat4f(&transMat, glfwGetTime() * 2, vec3f(0, 1, 1));
-        transMat = ScaleMat4f(&transMat, vec3f(.5, .5, .5));
-
-        glUniformMatrix4fv(glGetUniformLocation(shaderProg, "transform"), 1,
-                           GL_FALSE, (float *)&transMat);
-
         glBindVertexArray(VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+        Mat4f view = CalcLookAtMat4f(cameraPos, AddVec3f(cameraPos, cameraFront), cameraUp);
+
+        GLuint viewLoc = glGetUniformLocation(shaderProg, "view");
+        glUniformMatrix4fv(viewLoc, 1,
+                           GL_FALSE, (float *)&view);
+
+        glfwGetWindowSize(win, &width, &height);
+        Mat4f proj = CreatePerspectiveMat4f(DegToRad(fov), (float)width / (float)height, .1, 1000);
+
+        GLuint projLoc = glGetUniformLocation(shaderProg, "projection");
+        glUniformMatrix4fv(projLoc, 1,
+                           GL_FALSE, (float *)&proj);
+
+        Mat4f model = RotateMat4f(&IdMat4f, glfwGetTime(), vec3f(3, 1, 0));
+        model = RotateMat4f(&model, (float)glfwGetTime(), vec3f(2, 1, 5));
+
+        glUniformMatrix4fv(glGetUniformLocation(shaderProg, "model"), 1,
+                           GL_FALSE, (float *)&model);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        clock_t end = clock();
+
+        printf("Took %f milliseconds\n", (double)(end - begin) / CLOCKS_PER_SEC * 1000);
+
+        totalTime += end - begin;
+        numSamples++;
 
         /* Final book keeping */
         glfwSwapBuffers(win);
         glfwPollEvents();
     }
+    printf("Took %f milliseconds  on average\n",
+           (double)(totalTime / numSamples) / CLOCKS_PER_SEC * 1000);
     glfwTerminate();
     return 0;
 }

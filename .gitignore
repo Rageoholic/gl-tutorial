@@ -20,3 +20,4 @@
 /.user.mk
 /multiple-lights
 /textured-lighting
+/gl-transform-test

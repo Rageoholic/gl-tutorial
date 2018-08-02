@@ -239,13 +239,13 @@ static void ProcessInput(float deltaTime, GLFWwindow *win,
     if (glfwGetKey(win, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
     {
         *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(0, 1, 0),
+                             MultiplyScalarVec3f(*cameraUp,
                                                  moveSpeed));
     }
     if (glfwGetKey(win, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
     {
-        *modelPos = AddVec3f(*modelPos,
-                             MultiplyScalarVec3f(vec3f(0, -1, 0),
+        *modelPos = SubVec3f(*modelPos,
+                             MultiplyScalarVec3f(*cameraUp,
                                                  moveSpeed));
     }
 }
@@ -539,7 +539,6 @@ int main(int argc, char **argv)
 
         glBindVertexArray(cubeVAO);
 
-        Vec3f officialCameraFront = AddVec3f(cameraPos, cameraFront);
         Mat4f view = CalcLookAtMat4f(cameraPos,
                                      AddVec3f(cameraPos, cameraFront),
                                      cameraUp);
@@ -565,6 +564,7 @@ int main(int argc, char **argv)
             cubeModel = TranslateMat4f(&cubeModel, modelPos);
             float angle = 13 * i;
             cubeModel = RotateMat4f(&cubeModel, DegToRad(angle), (Vec3f){1, .3, .5});
+            cubeModel = RotateMat4f(&cubeModel, glfwGetTime(), (Vec3f){.3, .5, 1});
 
             SetUniformMat4fShaderProg(cubeProg, "model", &cubeModel);
             glDrawArrays(GL_TRIANGLES, 0, 36);
